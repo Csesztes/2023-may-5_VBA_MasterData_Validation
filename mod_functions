@@ -1,0 +1,103 @@
+Option Explicit
+Dim wbToOPen As Workbook
+Dim wblastrow As Long
+Dim c As Long 'iterate trough array
+Dim dictDistinct As New Scripting.Dictionary
+
+Public readDataarr() As Variant
+Public categoriesArr() As Variant
+Public categoreisExtendedArr() As Variant
+Public FinalRowNum As Long
+
+Public Sub extractNumberOfRowsbyCategory(myswitch As Boolean) 'switches between reportpackage and
+    
+    Dim r, i, SumOfRows As Long
+    Dim searchRange As Range
+    Dim shNamecontainer As Variant
+    Set searchRange = shKPU_sum.Range("A1", Range("A1").End(xlDown))
+
+    i = 2
+    wblastrow = 0
+    SumOfRows = 0
+    
+    shNamecontainer = categoreisExtendedArr(0, 0)
+    For c = LBound(categoreisExtendedArr) To UBound(categoreisExtendedArr) - (not_in_use_counter + 2) Step 1 'is the number of empty rows in categoriesExtended array
+              
+        If categoreisExtendedArr(c, 5) = "not_in_use" Then GoTo skip
+              
+        Set wbToOPen = Workbooks.Open(categoreisExtendedArr(c, 4) & categoreisExtendedArr(c, 1) & fileExtension)
+        wbToOPen.Activate
+        
+        If wbToOPen.Sheets(1).Range("A1") = vbNullString Then 'Some files has more than one sheet, that is why this check is needed
+            wblastrow = wbToOPen.Sheets(2).Range("A2").CurrentRegion.CurrentRegion.Rows.Count - 1
+            
+            If wbToOPen.Sheets(2).Range("A2") = vbNullString And wbToOPen.Sheets(2).Range("B2") = vbNullString Then  'Some files has empty tables which counts as 1 row, that is why this check is needed
+                wblastrow = 0
+            End If
+        Else
+            wblastrow = wbToOPen.Sheets(1).Range("A2").CurrentRegion.CurrentRegion.Rows.Count - 1
+            
+            If wbToOPen.Sheets(1).Range("B2") = vbNullString And wbToOPen.Sheets(1).Range("A2") = vbNullString Then
+                wblastrow = 0
+            End If
+            
+        End If
+        
+        If categoreisExtendedArr(c, 4) <> "T:\Material MD reports\" Then
+            FinalRowNum = FinalRowNum + wblastrow
+        End If
+        
+        If wblastrow > 0 Then
+            If categoreisExtendedArr(c, 2) <> "NONE" Then
+                If categoreisExtendedArr(c, 2) <> vbNullString Then
+                    If categoreisExtendedArr(c, 4) <> "T:\Material MD reports\" Then
+                        Call distinct
+                    End If
+                End If
+            End If
+        End If
+        
+        If categoreisExtendedArr(c, 0) = shNamecontainer Then
+            SumOfRows = SumOfRows + wblastrow
+            searchRange.Find(categoreisExtendedArr(c, 0)).Offset(0, 1).Value = SumOfRows
+        ElseIf categoreisExtendedArr(c, 0) <> shNamecontainer Then
+            'If myswitch = True Then dictDistinct.RemoveAll ' - distinct checks every SKU/Plant combo which were present at least once in all the reports
+            SumOfRows = wblastrow
+            searchRange.Find(categoreisExtendedArr(c, 0)).Offset(0, 1).Value = SumOfRows
+        End If
+        
+        shNamecontainer = categoreisExtendedArr(c, 0)
+        wbToOPen.Close (False)
+skip:
+    shKPU_sum.Range("h1").Value = FinalRowNum
+    Next c
+    
+End Sub
+
+
+Private Sub distinct()
+        
+        Dim rg() As Variant
+        Dim strToFindSKU As String
+        Dim strToFindPlant As String
+
+            If wbToOPen.Sheets(1).Range("A1") = vbNullString Then 'Some files has more than one sheet, this check which sheet should be used
+             rg = wbToOPen.Sheets(2).Range("A1").CurrentRegion.CurrentRegion.Offset(1, 0).Value
+        Else
+             rg = wbToOPen.Sheets(1).Range("A1").CurrentRegion.CurrentRegion.Offset(1, 0).Value
+        End If
+        
+        Dim iterator As Long
+        For iterator = LBound(rg) To UBound(rg) - 1 Step 1
+
+            If dictDistinct.Exists(rg(iterator, categoreisExtendedArr(c, 2)) & rg(iterator, categoreisExtendedArr(c, 3))) Then
+                    FinalRowNum = FinalRowNum - 1
+            Else
+                dictDistinct.Add rg(iterator, categoreisExtendedArr(c, 2)) & rg(iterator, categoreisExtendedArr(c, 3)), vbNullString
+            End If
+        Next iterator
+        
+End Sub
+
+
+
