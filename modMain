@@ -1,0 +1,47 @@
+
+Option Explicit
+
+Sub Main_MD_accuracy() 'Create KPI main sub
+    
+    Call SwitchSpeed(False) 'Turn off excel features
+
+    Call CreateCategoriesArr
+    
+    Call RelateCategoriesToFiles
+    
+    Call extractNumberOfRowsbyCategory(True) ' this function counts the rows and calculates discint
+    
+    'calculate special distincts for incorrect Material/Plants and incorrect material/salesOrg.
+    Call calculate_distinct
+    
+    ' get sum of ZFER,ZROH,ZSEM,ZVER,Blanks
+    Call get_categories
+    
+    Call SwitchSpeed(True) 'Turn on excel features
+    
+    MsgBox "Finished", vbInformation
+     
+End Sub
+
+Sub Main_CreateSummary_and_Template()
+    
+    'Turn stuff off
+    SwitchSpeed (False)
+    
+    'clear summary sheet
+     Call setShsummary
+    
+    ' read data from WB to Arr
+    Call getData
+    
+    ' filter where template is ECC or APO
+    Call CheckTemplateType
+    
+    
+    'Turn stuff back on
+    SwitchSpeed (True)
+    
+    MsgBox "Finished", vbInformation
+    
+End Sub
+
