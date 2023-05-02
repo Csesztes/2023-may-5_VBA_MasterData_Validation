@@ -1,0 +1,30 @@
+Option Explicit
+Public Function check_what_day_it_is()
+    check_what_day_it_is = WorksheetFunction.Weekday(Date - 1)
+End Function
+
+Public Function change_char_to(mychar As String) 'change / to - otherwise workbooks will not be saved.
+        
+    mychar = Date
+        
+    Dim r As Long
+    For r = 1 To Len(mychar)
+        If Mid(mychar, r, 1) = "/" Then
+            Mid(mychar, r, 1) = "-"
+        End If
+        change_char_to = change_char_to & Mid(mychar, r, 1)
+    Next r
+    
+End Function
+
+Public Sub SwitchSpeed(myval As Boolean)
+    
+    With Application
+        .EnableAnimations = myval
+        .EnableEvents = myval
+        .DisplayAlerts = myval
+        .DisplayStatusBar = myval
+        '.ScreenUpdating = myval
+    End With
+    
+End Sub
