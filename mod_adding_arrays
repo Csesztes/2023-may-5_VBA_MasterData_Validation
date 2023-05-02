@@ -1,0 +1,86 @@
+Option Explicit
+Public varWeekday As Integer
+
+Public MainWb As Workbook
+Public totalsheets As Long
+
+Public Const fileExtension As String = ".xlsx"
+Public Const indexTemplate As Long = 6
+Public Const indexday As Long = 5
+Public Const indexReportPackage As Long = 4
+Public Const indexReportPackage_2_Akos As Long = 17
+Public Const indexReportName As Long = 1
+Public Const indexSourceSKU As Long = 8
+Public Const indexSourcePlant As Long = 9
+Public Const indexSourcevalue As Long = 10
+Public Const indexSourceFileOrValue As Long = 11
+Public Const indexTemplateSku As Long = 13
+Public Const indexTemplatePlant As Long = 14
+Public Const indexTemplateVal As Long = 15
+Public Const indexFolderCOlumn As Long = 18
+    
+'Declare arrays
+Public arrEveryREport() As Variant
+Public not_in_use_counter As Long
+
+Public Sub CreateCategoriesArr()
+    
+    readDataarr = ShData.Range("A1").CurrentRegion.Value2
+    
+    Dim r, i, c As Long
+    Dim container As Variant
+    container = vbNullString
+    i = 0
+    c = 2
+    not_in_use_counter = 0
+    
+    shKPU_sum.Range("A1").CurrentRegion.Offset(1, 0).Clear
+    shKPU_sum.Range("H1", "H" & Range("H1").End(xlDown).Row).Clear
+    
+    ReDim categoriesArr(i) As Variant
+    
+    For r = LBound(readDataarr) To UBound(readDataarr)
+        If readDataarr(r, indexReportPackage_2_Akos) = "not_in_use" Then not_in_use_counter = not_in_use_counter + 1
+        
+        If container <> readDataarr(r, indexReportPackage) And readDataarr(r, indexReportPackage) <> "PLAN_XX" Then
+            If readDataarr(r, indexReportPackage_2_Akos) = "not_in_use" Then GoTo skip:
+            
+            ReDim Preserve categoriesArr(i) As Variant
+            'Debug.Print readDataarr(r, indexReportPackage)
+            container = readDataarr(r, indexReportPackage)
+            categoriesArr(i) = readDataarr(r, indexReportPackage)
+            shKPU_sum.Cells(c, 1).Value = readDataarr(r, indexReportPackage)
+            i = i + 1
+            c = c + 1
+        End If
+skip:
+    Next r
+    
+End Sub
+
+Public Sub RelateCategoriesToFiles()
+    
+    
+    Dim item As Variant
+    Dim r, i As Long
+    totalsheets = ShData.Range("A" & Rows.Count).End(xlUp).Row
+    i = 0
+    
+    ReDim Preserve categoreisExtendedArr(totalsheets, 5) As Variant
+    
+    For Each item In categoriesArr
+        For r = LBound(readDataarr) To UBound(readDataarr)
+            If item = readDataarr(r, indexReportPackage) Then
+                categoreisExtendedArr(i, 0) = readDataarr(r, indexReportPackage)
+                categoreisExtendedArr(i, 1) = readDataarr(r, indexReportName)
+                categoreisExtendedArr(i, 2) = readDataarr(r, indexSourceSKU)
+                categoreisExtendedArr(i, 3) = readDataarr(r, indexSourcePlant)
+                categoreisExtendedArr(i, 4) = readDataarr(r, indexFolderCOlumn)
+                categoreisExtendedArr(i, 5) = readDataarr(r, indexReportPackage_2_Akos)
+
+                i = i + 1
+            End If
+        Next r
+    Next item
+
+End Sub
