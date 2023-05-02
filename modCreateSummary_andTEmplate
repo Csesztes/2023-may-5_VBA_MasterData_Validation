@@ -91,7 +91,7 @@ Private Sub OpenTemplateAndRelevanFiles(ByVal templatePath As String, ByVal eaRe
     eaSkuArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAskuCol), Cells(Cells(Rows.Count, EAskuCol).End(xlUp).Row, EAskuCol))
     eaPlantArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAPlantCol), Cells(Cells(Rows.Count, EAPlantCol).End(xlUp).Row, EAPlantCol))
     
-    If valFileName = "VALUE" Then ' ha ha VAlue és nem üres sor <====== innen!!!
+    If valFileName = "VALUE" Then 
     
         If eaReportLastrow - 1 > 1 Then
         
