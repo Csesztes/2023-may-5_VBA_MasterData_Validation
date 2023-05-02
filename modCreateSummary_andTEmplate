@@ -1,0 +1,249 @@
+Option Explicit
+
+Dim SourceArr As Variant
+Dim dayCollections As Collection
+Const pathToSaveTemplates As String = "C:\Users\1619yg\OneDrive - BP\Documents\Testing_MD_val_reports\"
+Const ApoTemplateString As String = "C:\Users\1619yg\OneDrive - BP\Documents\Testing_MD_val_reports\MAT_SYNC_APO-TEMPLATE.xls"
+Const EccTemplateString As String = "C:\Users\1619yg\OneDrive - BP\Documents\Testing_MD_val_reports\MAT_SYNC_ECC-TEMPLATE.xls"
+Const extensionXlsx As String = ".xlsx"
+Const extensionXls As String = ".xls"
+
+Public Enum colNumbers
+    fileNameCol = 1
+    plan_xx_col = 4
+    when_to_run_col = 5
+    templateTypeCol = 6
+    SourceSkuCol = 8
+    sourcePlantCol = 9
+    valueOrFileCol = 10
+    TemplateSKUCol = 13
+    valuefilename = 11
+    TemplatePlantCol = TemplateSKUCol + 1
+    templateValueCol = TemplateSKUCol + 2
+    eaExcelPath = 18
+    plan_xx_col_old = 20
+End Enum
+
+Public Sub getData()
+    SourceArr = ShData.Range("A1").CurrentRegion.Offset(1, 0).Value2
+End Sub
+
+Public Sub setShsummary()
+
+    With ShSummary
+        .Range("A:G").Clear
+        .Range("A1").Value = "Category"
+        .Range("B1").Value = "Filename"
+        .Range("C1").Value = "SKU"
+        .Range("D1").Value = "Plant"
+        .Range("E1").Value = "Value"
+        .Range("F1").Value = "TimeStamp"
+        .Range("G1").Value = "KPI_Category"
+    End With
+    
+End Sub
+
+Public Sub CheckTemplateType()
+    
+    'Call addDaysToColl <=================================*
+    Dim item As Variant
+    
+    Dim r As Long
+    For r = LBound(SourceArr) To UBound(SourceArr) - 1 Step 1
+    
+        Call CreateSUmmary(SourceArr(r, eaExcelPath), SourceArr(r, fileNameCol), SourceArr(r, plan_xx_col_old), SourceArr(r, plan_xx_col) _
+            , SourceArr(r, SourceSkuCol), SourceArr(r, sourcePlantCol), SourceArr(r, valueOrFileCol), SourceArr(r, valuefilename)) 'create Summary
+        
+        If SourceArr(r, templateTypeCol) = "ECC" Or SourceArr(r, templateTypeCol) = "APO" Then
+            Call CreateTemplateWB(SourceArr(r, plan_xx_col_old), SourceArr(r, templateTypeCol), SourceArr(r, fileNameCol), SourceArr(r - 1, plan_xx_col_old)) 'create template if APO or ECC
+            Call OpenTemplateAndRelevanFiles(ThisWorkbook.path, SourceArr(r, eaExcelPath), SourceArr(r + 1, eaExcelPath), SourceArr(r, fileNameCol), _
+                SourceArr(r, templateTypeCol), SourceArr(r, plan_xx_col_old), SourceArr(r, SourceSkuCol), SourceArr(r, sourcePlantCol), _
+                SourceArr(r, TemplateSKUCol), SourceArr(r, TemplatePlantCol), SourceArr(r, templateValueCol), SourceArr(r, valuefilename), SourceArr(r, valueOrFileCol))
+        End If
+        
+    Next r
+    
+End Sub
+Private Sub OpenTemplateAndRelevanFiles(ByVal templatePath As String, ByVal eaReportPath As String, ByVal NextTemplate As String, _
+    ByVal EAreportName As String, ByVal templateType As String, ByVal Packname As String, ByVal EAskuCol As Long, _
+    ByVal EAPlantCol As Long, ByVal TemplateSKUCol As Long, ByVal TemplatePlantCol As Long, ByVal templateValueCol As Long, _
+    ByVal valFileName As Variant, ByVal valOrCol As Variant)
+    
+    Dim wbTemplate, wbEAreport As Workbook
+    Set wbTemplate = Workbooks.Open(templatePath & "\" & templateType & "_" & Date & "_" & Packname & extensionXls)
+    Set wbEAreport = Workbooks.Open(eaReportPath & EAreportName & extensionXlsx, ReadOnly:=True)
+    
+    Dim sheetindex As Integer
+    If wbEAreport.Sheets(1).Range("A1") = vbNullString Then
+        sheetindex = 2
+    Else
+        sheetindex = 1
+    End If
+    
+    If wbEAreport.Sheets(sheetindex).Range("A2").Value = vbNullString And wbEAreport.Sheets(sheetindex).Range("B2").Value = vbNullString Then
+        GoTo skip ' eaWorkbook is empty
+    End If
+    
+    Dim eaReportLastrow As Long
+    eaReportLastrow = wbEAreport.Sheets(sheetindex).Range("A" & Rows.Count).End(xlUp).Row
+    
+    Dim eaSkuArr, eaPlantArr, eaValueArr, fileName, filecategory As Variant
+    eaSkuArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAskuCol), Cells(Cells(Rows.Count, EAskuCol).End(xlUp).Row, EAskuCol))
+    eaPlantArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAPlantCol), Cells(Cells(Rows.Count, EAPlantCol).End(xlUp).Row, EAPlantCol))
+    
+    If valFileName = "VALUE" Then ' ha ha VAlue és nem üres sor <====== innen!!!
+    
+        If eaReportLastrow - 1 > 1 Then
+        
+            ReDim eaValueArr(1 To UBound(eaSkuArr)) As Variant
+            ReDim fileName(1 To UBound(eaSkuArr)) As Variant
+            ReDim filecategory(1 To UBound(eaSkuArr)) As Variant
+            ReDim currentDate(1 To UBound(eaSkuArr)) As Variant
+            Dim c As Long
+            For c = 1 To UBound(eaValueArr) Step 1
+                eaValueArr(c) = valOrCol
+                fileName(c) = EAreportName
+                filecategory(c) = Packname
+            Next c
+            
+        Else
+            eaValueArr = valOrCol
+        End If
+        
+    Else
+        eaValueArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, valFileName), Cells(Cells(Rows.Count, valFileName).End(xlUp).Row, valFileName))
+    End If
+    
+    wbTemplate.Activate
+    
+    If eaReportLastrow - 1 > 1 Then
+        wbTemplate.Sheets(1).Cells(Rows.Count, TemplateSKUCol).End(xlUp).Offset(1, 0).Resize(UBound(eaSkuArr)).Value = eaSkuArr
+        wbTemplate.Sheets(1).Cells(Rows.Count, TemplatePlantCol).End(xlUp).Offset(1, 0).Resize(UBound(eaPlantArr)).Value = eaPlantArr
+        wbTemplate.Sheets(1).Cells(Rows.Count, templateValueCol).End(xlUp).Offset(1, 0).Resize(UBound(eaValueArr)).Value = eaValueArr
+        
+    Else
+        wbTemplate.Sheets(1).Cells(Rows.Count, TemplateSKUCol).End(xlUp).Offset(1, 0).Value = eaSkuArr 'if array only contains one element then resize is not needed
+        wbTemplate.Sheets(1).Cells(Rows.Count, TemplatePlantCol).End(xlUp).Offset(1, 0).Value = eaPlantArr
+        wbTemplate.Sheets(1).Cells(Rows.Count, templateValueCol).End(xlUp).Offset(1, 0).Value = eaValueArr
+        
+    End If
+skip:
+
+    wbEAreport.Close (False)
+    
+    If Packname <> NextTemplate Then
+        wbTemplate.Close (True)
+    End If
+    
+End Sub
+
+Private Sub CreateTemplateWB(ByVal Packname As String, ByVal templateType As String, _
+     ByVal fileName As String, ByVal comparePackName)
+    
+    If Packname <> comparePackName Then
+        Dim myworkbook As Workbook
+        If templateType = "APO" Then
+            Set myworkbook = Workbooks.Open(ApoTemplateString)
+        Else
+            Set myworkbook = Workbooks.Open(EccTemplateString)
+        End If
+        
+        myworkbook.SaveAs ThisWorkbook.path & "\" & templateType & "_" & Date & "_" & Packname & extensionXls
+        myworkbook.Close (True)
+    End If
+End Sub
+
+
+Public Sub CreateSUmmary(ByVal folder As String, ByVal EAreportName As String, ByVal plan_xx_old As String, ByVal plan_xx_current As String, ByVal EAskuCol As Variant, ByVal EAPlantCol As Variant, _
+     ByVal val_or_file_col As Variant, ByVal sourceValColNr As Variant)
+     
+    If EAskuCol = "NONE" Or EAskuCol = "not_in_use" Or folder = "T:\Material MD reports\" Then GoTo skip  ' Skip means that this file is not in use, so do not need opening
+    
+    Dim wbEAreport As Workbook
+    Set wbEAreport = Workbooks.Open(folder & EAreportName & extensionXlsx, ReadOnly:=True)
+ 
+    Dim sheetindex As Integer
+    If wbEAreport.Sheets(1).Range("A1") = vbNullString Then
+        sheetindex = 2
+    Else
+        sheetindex = 1
+    End If
+    
+    If wbEAreport.Sheets(sheetindex).Range("A2").Value = vbNullString And wbEAreport.Sheets(sheetindex).Range("B2").Value = vbNullString Then
+        GoTo skip2 ' skip2 means we use the workbook, but it is empty
+    End If
+    
+    Dim eaReportLastrow As Long
+    eaReportLastrow = wbEAreport.Sheets(sheetindex).Range("A" & Rows.Count).End(xlUp).Row
+    
+    Dim eaSkuArr, eaPlantArr, eaValueArr, fileName, filecategory As Variant
+    eaSkuArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAskuCol), Cells(Cells(Rows.Count, EAskuCol).End(xlUp).Row, EAskuCol))
+    eaPlantArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, EAPlantCol), Cells(Cells(Rows.Count, EAPlantCol).End(xlUp).Row, EAPlantCol))
+    
+    If sourceValColNr = "VALUE" Then
+    
+        If eaReportLastrow - 1 > 1 Then
+        
+            ReDim eaValueArr(1 To UBound(eaSkuArr)) As Variant
+            ReDim fileName(1 To UBound(eaSkuArr)) As Variant
+            ReDim filecategory(1 To UBound(eaSkuArr)) As Variant
+            ReDim currentDate(1 To UBound(eaSkuArr)) As Variant
+            ReDim planxx_current_arr(1 To UBound(eaSkuArr)) As Variant
+            Dim c As Long
+            For c = 1 To UBound(eaValueArr) Step 1
+                eaValueArr(c) = val_or_file_col
+                fileName(c) = EAreportName
+                filecategory(c) = plan_xx_old
+                planxx_current_arr(c) = plan_xx_current
+            Next c
+        Else
+            eaValueArr = val_or_file_col
+        End If
+    
+    ElseIf sourceValColNr = "NONE" Then
+        If eaReportLastrow - 1 > 1 Then
+        ReDim eaValueArr(1 To UBound(eaSkuArr)) As Variant
+            For c = 1 To UBound(eaValueArr) Step 1
+                eaValueArr(c) = "NONE"
+            Next c
+        Else
+            eaValueArr = "NONE"
+        End If
+    Else
+        eaValueArr = wbEAreport.Sheets(sheetindex).Range(Cells(2, sourceValColNr), Cells(Cells(Rows.Count, 1).End(xlUp).Row, sourceValColNr))
+    End If
+    
+    
+    If eaReportLastrow - 1 > 1 Then
+        'adding data to summary sheet
+        With ShSummary
+            .Activate
+            .Range("A" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaSkuArr)).Value = plan_xx_old
+            .Range("B" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaSkuArr)).Value = EAreportName
+            .Range("C" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaSkuArr)).Value = eaSkuArr
+            .Range("D" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaPlantArr)).Value = eaPlantArr
+            .Range("E" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaValueArr)).Value = eaValueArr
+            .Range("F2", Cells(Cells(Rows.Count, 1).End(xlUp).Row, 6)).Value = Date
+            .Range("G" & Rows.Count).End(xlUp).Offset(1, 0).Resize(UBound(eaValueArr)).Value = plan_xx_current
+        End With
+    Else
+        With ShSummary
+        'if array only contains one element then resize is not needed
+            .Activate
+            .Range("A" & Rows.Count).End(xlUp).Offset(1, 0).Value = plan_xx_old
+            .Range("B" & Rows.Count).End(xlUp).Offset(1, 0).Value = EAreportName
+            .Range("C" & Rows.Count).End(xlUp).Offset(1, 0).Value = eaSkuArr
+            .Range("D" & Rows.Count).End(xlUp).Offset(1, 0).Value = eaPlantArr
+            .Range("E" & Rows.Count).End(xlUp).Offset(1, 0).Value = eaValueArr
+            .Range("F2", Cells(Cells(Rows.Count, 1).End(xlUp).Row, 6)).Value = Date
+            .Range("G" & Rows.Count).End(xlUp).Offset(1, 0).Value = plan_xx_current
+        End With
+    End If
+    
+skip2: ' skip2 means we use the workbook, but it is empty
+
+    wbEAreport.Close (False)
+    
+skip: ' Skip means that this file is not in use, so do not need opening
+ 
+End Sub
