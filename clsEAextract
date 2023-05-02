@@ -1,0 +1,11 @@
+'############    This is used only for cls_eaColl class   ###################
+Option Explicit
+
+Public fileName As String
+Public path As String
+Public Distint_Type As String
+Public SKU As String
+Public plant As String
+
+
+
