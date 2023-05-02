@@ -1,0 +1,78 @@
+Option Explicit
+Public dict_MDLOC As New Scripting.Dictionary
+Public dict_MDSO As New Scripting.Dictionary
+
+Public Function Distinct_2(ByVal path As String, ByVal distinctType As String, ByVal SKU As Integer, ByVal plant As Integer) As Long  ' this is only for distinct calculation for "All Material/plants" and "All Material/Sales Orgs" groups
+        
+        Dim rg() As Variant
+        Dim strToFindSKU As String
+        Dim strToFindPlant As String
+        Dim wb_to_OPen_lastrow As Long
+        Dim wb_to_OPen As Workbook
+        
+        Set wb_to_OPen = Workbooks.Open(path, ReadOnly:=True)
+
+        If wb_to_OPen.Sheets(1).Range("A1") = vbNullString Then  'Some files has more than one sheet, this check which sheet should be used
+             rg = wb_to_OPen.Sheets(2).Range("A1").CurrentRegion.CurrentRegion.Offset(1, 0).Value
+             wb_to_OPen_lastrow = wb_to_OPen.Sheets(2).Range("A" & Rows.Count).End(xlUp).Row
+        Else
+             rg = wb_to_OPen.Sheets(1).Range("A1").CurrentRegion.CurrentRegion.Offset(1, 0).Value
+             wb_to_OPen_lastrow = wb_to_OPen.Sheets(1).Range("A" & Rows.Count).End(xlUp).Row
+        End If
+        
+        Distinct_2 = wb_to_OPen_lastrow - 1 ' the "-1" is due to the header row, it is  deduced from the total number of rows
+        
+        Dim iterator As Long
+        For iterator = LBound(rg) To UBound(rg) - 1 Step 1
+        
+            If distinctType = "MDLOC" Then
+                If dict_MDLOC.Exists(rg(iterator, SKU) & rg(iterator, plant)) Then
+                        Distinct_2 = Distinct_2 - 1
+                Else
+                    dict_MDLOC.Add rg(iterator, SKU) & rg(iterator, plant), vbNullString
+                End If
+                
+             Else
+                If distinctType = "MDSO" Then
+                    If dict_MDSO.Exists(rg(iterator, SKU) & rg(iterator, plant)) Then
+                            Distinct_2 = Distinct_2 - 1
+                    Else
+                        dict_MDSO.Add rg(iterator, SKU) & rg(iterator, plant), vbNullString
+                    End If
+                End If
+             End If
+            
+        
+        Next iterator
+        wb_to_OPen.Close (False)
+        'Debug.Print Distinct_2
+    
+End Function
+
+Sub calculate_distinct()
+
+    Dim container As New cls_eaColl
+    Dim item As Variant
+
+    
+    Dim counter_MDLOC, counter_MDSO As Long
+    counter_MDLOC = 0
+    counter_MDSO = 0
+    
+        For Each item In container.coll_EA_reports
+            If item.Distint_Type = "MDLOC" Then
+                counter_MDLOC = counter_MDLOC + Distinct_2(item.path & item.fileName & ".xlsx", item.Distint_Type, item.SKU, item.plant)
+                
+            ElseIf item.Distint_Type = "MDSO" Then
+                counter_MDSO = counter_MDSO + Distinct_2(item.path & item.fileName & ".xlsx", item.Distint_Type, item.SKU, item.plant)
+            Else
+                
+            End If
+        Next item
+
+    'Debug.Print "MDLOC : " & counter_MDLOC & " | " & "MDSO :" & counter_MDSO
+    shKPU_sum.Range("H2").Value = counter_MDLOC
+    shKPU_sum.Range("H3").Value = counter_MDSO
+End Sub
+
+
