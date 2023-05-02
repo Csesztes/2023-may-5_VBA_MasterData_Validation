@@ -1,0 +1,36 @@
+'############    This is used only for calculating special distinct values "Incorrect Material/Plants" and Incorrect Material/Sales Orgs   ###################
+
+Option Explicit
+
+Public coll_EA_reports As New Collection
+
+Private Const col_filename As Integer = 1
+Private Const col_sku As Integer = 8
+Private Const col_plant As Integer = 9
+Private Const col_path As Integer = 18
+Private Const col_distinct_type As Integer = 21
+
+Private Sub Class_Initialize()
+    
+    Dim myarr As Variant
+    myarr = ShData.UsedRange.Offset(1, 0)
+    
+    Dim eaReport As clsEAextract
+    
+    Dim r As Long
+    For r = 1 To UBound(myarr) Step 1
+        Set eaReport = New clsEAextract
+        
+        With eaReport
+            .fileName = myarr(r, col_filename)
+            .path = myarr(r, col_path)
+            .SKU = myarr(r, col_sku)
+            .plant = myarr(r, col_plant)
+            .Distint_Type = myarr(r, col_distinct_type)
+            
+            coll_EA_reports.Add eaReport
+        End With
+    Next r
+    
+End Sub
+
