@@ -1,0 +1,47 @@
+Option Explicit
+
+Public Sub get_categories()
+    
+    Dim wb As Workbook
+    Set wb = Workbooks.Open("T:\MD Validation reports\PLAN_63_MDaccuracy_PLAN_33and47.xlsx", ReadOnly:=True)
+    
+    Dim arr As Variant
+    arr = wb.Sheets(1).Range("A1").CurrentRegion
+    
+    Dim counter_ZFER, counter_ZROH, counter_ZSEM, counter_ZVER, Counter_blank As Long
+    counter_ZFER = 0
+    counter_ZROH = 0
+    counter_ZSEM = 0
+    counter_ZVER = 0
+    Counter_blank = 0
+    
+    Dim r As Long
+    For r = 1 To UBound(arr) Step 1
+        
+        Select Case arr(r, 6)
+        Case Is = "ZFER (Finished Materials)"
+            counter_ZFER = counter_ZFER + 1
+        Case Is = "ZROH (Raw Materials)"
+            counter_ZROH = counter_ZROH + 1
+        Case Is = "ZSEM (Semi Finished Materials)"
+            counter_ZSEM = counter_ZSEM + 1
+        Case Is = "ZVER (Packaging Materials)"
+            counter_ZVER = counter_ZVER + 1
+        Case Is = vbNullString
+            Counter_blank = Counter_blank + 1
+        End Select
+
+    Next r
+    
+    With shKPU_sum
+        .Range("H4").Value = counter_ZFER
+        .Range("H5").Value = counter_ZROH
+        .Range("H6").Value = counter_ZSEM
+        .Range("H7").Value = counter_ZVER
+        .Range("H8").Value = Counter_blank
+    End With
+    
+    wb.Close (False)
+    
+    
+End Sub
